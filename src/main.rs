@@ -1,4 +1,5 @@
 #![recursion_limit = "128"]
+#![warn(clippy::all)]
 
 use clap::{crate_version, load_yaml, App};
 use failure::Error;

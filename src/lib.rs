@@ -43,7 +43,7 @@ impl TelegramLogger {
             let json: Value = response.json()?;
             let description = json
                 .get("description")
-                .and_then(|desc| desc.as_str())
+                .and_then(Value::as_str)
                 .unwrap_or("no description")
                 .to_string();
 
