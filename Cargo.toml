@@ -26,11 +26,6 @@ assets = [
   ["assets/logram.service", "lib/systemd/system/", "644"],
 ]
 
-[dev-dependencies.cargo-husky]
-version = "1.3"
-default-features = false
-features = ["precommit-hook", "run-cargo-test", "run-cargo-clippy"]
-
 [dependencies]
 clap = { version = "2.32", features = ["yaml"] }
 failure = "0.1"
