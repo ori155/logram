@@ -1,13 +1,13 @@
 #![recursion_limit = "128"]
 #![warn(clippy::all)]
 
-use clap::{crate_version, load_yaml, App};
 use failure::Error;
 use futures::{stream, Future, Stream};
 use std::process;
 use tgbot::{methods::SendMessage, types::ParseMode, Api as TelegramApi};
 use tokio;
 
+mod cli;
 mod config;
 mod echo_id;
 mod source;
@@ -19,9 +19,7 @@ use self::{
 };
 
 fn run() -> Result<(), Error> {
-    let cli = load_yaml!("../cli.yaml");
-    let app = App::from_yaml(cli).version(crate_version!());
-    let matches = app.get_matches();
+    let matches = cli::matches();
 
     if let Some(matches) = matches.subcommand_matches("echo_id") {
         let token = matches.value_of("token").unwrap();
