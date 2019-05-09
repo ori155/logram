@@ -3,12 +3,13 @@ use std::thread;
 use systemd::journal::{Journal, JournalFiles, JournalSeek};
 
 use crate::{
-    config::JournaldLogSourceConfig,
     source::{LogSource, LogSourceStream},
     utils::result_channel,
 };
 
+mod config;
 mod record;
+pub use self::config::Config;
 use self::record::map_record;
 
 pub struct JournaldLogSource {
@@ -16,7 +17,7 @@ pub struct JournaldLogSource {
 }
 
 impl JournaldLogSource {
-    pub fn new(config: JournaldLogSourceConfig) -> Result<Self, Error> {
+    pub fn new(config: Config) -> Result<Self, Error> {
         let mut journal = Journal::open(JournalFiles::All, false, true)?;
         journal.seek(JournalSeek::Tail)?;
 
@@ -63,12 +64,9 @@ mod tests {
     use futures::Stream;
     use systemd::journal;
 
-    use crate::{
-        config::JournaldLogSourceConfig,
-        source::{LogRecord, LogSource},
-    };
+    use crate::source::{LogRecord, LogSource};
 
-    use super::JournaldLogSource;
+    use super::{Config, JournaldLogSource};
 
     fn send_log_record(keys: Vec<(&str, &str)>) {
         let keys: Vec<String> = keys
@@ -90,7 +88,7 @@ mod tests {
 
     #[test]
     fn main() {
-        let config = JournaldLogSourceConfig {
+        let config = Config {
             units: vec![String::from("user@1000.service")],
         };
 

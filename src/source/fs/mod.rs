@@ -13,12 +13,13 @@ use std::{
 use walkdir::WalkDir;
 
 use crate::{
-    config::FsLogSourceConfig,
     source::{LogSource, LogSourceStream},
     utils::result_channel,
 };
 
+mod config;
 mod event;
+pub use self::config::Config;
 use self::event::FsEvent;
 
 pub struct FsLogSource {
@@ -27,7 +28,7 @@ pub struct FsLogSource {
 }
 
 impl FsLogSource {
-    pub fn new(config: FsLogSourceConfig) -> Result<FsLogSource, Error> {
+    pub fn new(config: Config) -> Result<FsLogSource, Error> {
         let (tx, receiver) = mpsc::channel();
         let debounce_interval = Duration::from_secs(1);
         let mut watcher: RecommendedWatcher = Watcher::new(tx, debounce_interval)?;
@@ -120,7 +121,7 @@ mod tests {
 
     use crate::source::{LogRecord, LogSource};
 
-    use super::{FsLogSource, FsLogSourceConfig};
+    use super::{Config, FsLogSource};
 
     fn record(title: &str, body: &str) -> LogRecord {
         LogRecord {
@@ -138,7 +139,7 @@ mod tests {
         fs::create_dir(&base_path).unwrap();
 
         let base_path_string = base_path.display().to_string();
-        let config = FsLogSourceConfig {
+        let config = Config {
             entries: vec![base_path_string],
         };
 

@@ -6,7 +6,8 @@ pub fn matches<'a>() -> ArgMatches<'a> {
         .long("config")
         .value_name("FILE")
         .help("Sets a custom config file")
-        .takes_value(true);
+        .takes_value(true)
+        .required(true);
 
     let token_arg = Arg::with_name("token")
         .short("t")
