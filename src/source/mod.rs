@@ -19,7 +19,7 @@ pub trait LogSource {
     fn into_stream(self) -> Box<LogSourceStream>;
 }
 
-pub fn create_log_sources_stream(config: LogSourcesConfig) -> Result<Box<LogSourceStream>, Error> {
+pub fn create_stream(config: LogSourcesConfig) -> Result<Box<LogSourceStream>, Error> {
     let mut log_sources_stream = Box::new(stream::empty()) as Box<LogSourceStream>;
 
     if config.fs.enabled {

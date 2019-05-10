@@ -2,20 +2,13 @@ use failure::Error;
 use serde_derive::Deserialize;
 use std::fs::File;
 
-use crate::source::LogSourcesConfig;
+use crate::{source::LogSourcesConfig, telegram::Config as TelegramConfig};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub telegram: TelegramConfig,
     pub sources: LogSourcesConfig,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TelegramConfig {
-    pub token: String,
-    pub chat_id: String,
 }
 
 impl Config {
