@@ -99,7 +99,7 @@ impl FsLogSource {
 }
 
 impl LogSource for FsLogSource {
-    fn into_stream(mut self) -> Box<LogSourceStream> {
+    fn into_stream(mut self: Box<Self>) -> Box<LogSourceStream> {
         let (tx, rx) = result_channel();
 
         thread::spawn(move || loop {
@@ -143,7 +143,7 @@ mod tests {
             entries: vec![base_path_string],
         };
 
-        let source = FsLogSource::new(config).unwrap();
+        let source = Box::new(FsLogSource::new(config).unwrap());
         let mut stream = source.into_stream().wait();
 
         let file_path = base_path.join("file");

@@ -1,11 +1,12 @@
 use failure::Error;
-use futures::{stream, Stream};
+use futures::Stream;
 
 mod config;
-pub mod fs;
-pub mod journald;
+mod docker;
+mod fs;
+mod journald;
 pub use self::config::LogSourcesConfig;
-use self::{fs::FsLogSource, journald::JournaldLogSource};
+use self::{docker::DockerLogSource, fs::FsLogSource, journald::JournaldLogSource};
 
 #[derive(Debug, PartialEq)]
 pub struct LogRecord {
@@ -15,26 +16,33 @@ pub struct LogRecord {
 
 pub type LogSourceStream = Stream<Item = LogRecord, Error = Error> + Send;
 
-pub trait LogSource {
-    fn into_stream(self) -> Box<LogSourceStream>;
+pub trait LogSource: Send {
+    fn into_stream(self: Box<Self>) -> Box<LogSourceStream>;
 }
 
-pub fn create_stream(config: LogSourcesConfig) -> Result<Box<LogSourceStream>, Error> {
-    let mut log_sources_stream = Box::new(stream::empty()) as Box<LogSourceStream>;
+pub fn init_log_sources(config: LogSourcesConfig) -> Result<Vec<Box<LogSource>>, Error> {
+    let mut sources = Vec::new();
 
     if config.fs.enabled {
         let fs = FsLogSource::new(config.fs.inner)?;
-        let fs_stream = fs.into_stream();
+        let source = Box::new(fs) as Box<LogSource>;
 
-        log_sources_stream = Box::new(log_sources_stream.select(fs_stream));
+        sources.push(source);
     }
 
     if config.journald.enabled {
-        let journald = JournaldLogSource::new(config.journald.inner)?;
-        let journald_stream = journald.into_stream();
+        let fs = JournaldLogSource::new(config.journald.inner)?;
+        let source = Box::new(fs) as Box<LogSource>;
 
-        log_sources_stream = Box::new(log_sources_stream.select(journald_stream));
+        sources.push(source);
     }
 
-    Ok(log_sources_stream)
+    if config.docker.enabled {
+        let fs = DockerLogSource::new(config.docker.inner)?;
+        let source = Box::new(fs) as Box<LogSource>;
+
+        sources.push(source);
+    }
+
+    Ok(sources)
 }

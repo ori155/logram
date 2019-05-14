@@ -34,7 +34,7 @@ impl JournaldLogSource {
 unsafe impl Send for JournaldLogSource {}
 
 impl LogSource for JournaldLogSource {
-    fn into_stream(mut self) -> Box<LogSourceStream> {
+    fn into_stream(mut self: Box<Self>) -> Box<LogSourceStream> {
         let (tx, rx) = result_channel();
         let tx_clone = tx.clone();
 
@@ -92,7 +92,7 @@ mod tests {
             units: vec![String::from("user@1000.service")],
         };
 
-        let source = JournaldLogSource::new(config).unwrap();
+        let source = Box::new(JournaldLogSource::new(config).unwrap());
         let mut stream = source.into_stream().wait();
         let mut stream_next = || stream.next().unwrap().unwrap();
 
