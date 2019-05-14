@@ -78,9 +78,13 @@ impl DockerLogSource {
             .get(&name)
             .logs(&options)
             .from_err()
-            .map(move |chunk| LogRecord {
+            .map(move |chunk| chunk.as_string_lossy())
+            .map(move |body| utils::crop_ansi_codes(&body))
+            .map(move |body| body.trim_end_matches('\n').to_string())
+            .filter(move |body| !body.is_empty())
+            .map(move |body| LogRecord {
                 title: name.clone(),
-                body: chunk.as_string_lossy(),
+                body,
             })
     }
     fn new_containers(&self) -> impl Stream<Item = String, Error = Error> {
