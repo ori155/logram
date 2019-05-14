@@ -15,7 +15,7 @@ pub struct LogSourceConfig<T> {
 impl<T: Default> Default for LogSourceConfig<T> {
     fn default() -> Self {
         LogSourceConfig {
-            enabled: true,
+            enabled: false,
             inner: T::default(),
         }
     }
