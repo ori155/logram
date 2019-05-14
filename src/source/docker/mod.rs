@@ -1,3 +1,4 @@
+use chrono::Utc;
 use failure::Error;
 use futures::{sink::Sink, sync::mpsc::UnboundedSender, Future, Stream};
 use shiplift::{
@@ -64,10 +65,12 @@ impl DockerLogSource {
             })
     }
     fn container_logs(&self, name: String) -> impl Stream<Item = LogRecord, Error = Error> {
+        let now = Utc::now().timestamp();
         let options = LogsOptions::builder()
             .stdout(true)
             .stderr(true)
             .follow(true)
+            .since(now)
             .build();
 
         self.docker
