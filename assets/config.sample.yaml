@@ -3,7 +3,7 @@ telegram:
   token: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11 # bot token
 
 sources:
-  fs:
+  filesystem:
     enabled: false # each log source has this setting, false by default
     entries: # paths to watching files or dirs
       - /tmp/log_file

@@ -1,7 +1,8 @@
 use serde::Deserialize;
 
 use super::{
-    docker::Config as DockerConfig, fs::Config as FsConfig, journald::Config as JournaldConfig,
+    docker::Config as DockerConfig, filesystem::Config as FilesystemConfig,
+    journald::Config as JournaldConfig,
 };
 
 #[derive(Debug, Deserialize)]
@@ -24,7 +25,7 @@ impl<T: Default> Default for LogSourceConfig<T> {
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
 pub struct LogSourcesConfig {
-    pub fs: LogSourceConfig<FsConfig>,
+    pub filesystem: LogSourceConfig<FilesystemConfig>,
     pub journald: LogSourceConfig<JournaldConfig>,
     pub docker: LogSourceConfig<DockerConfig>,
 }

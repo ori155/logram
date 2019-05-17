@@ -20,15 +20,15 @@ use crate::{
 mod config;
 mod event;
 pub use self::config::Config;
-use self::event::FsEvent;
+use self::event::FilesystemEvent;
 
-pub struct FsLogSource {
+pub struct FilesystemLogSource {
     sizes: HashMap<PathBuf, u64>,
     receiver: Receiver<DebouncedEvent>,
 }
 
-impl FsLogSource {
-    pub fn new(config: Config) -> Result<FsLogSource, Error> {
+impl FilesystemLogSource {
+    pub fn new(config: Config) -> Result<Self, Error> {
         let (tx, receiver) = mpsc::channel();
         let debounce_interval = Duration::from_secs(1);
         let mut watcher: RecommendedWatcher = Watcher::new(tx, debounce_interval)?;
@@ -51,9 +51,9 @@ impl FsLogSource {
 
         mem::forget(watcher);
 
-        Ok(FsLogSource { sizes, receiver })
+        Ok(FilesystemLogSource { sizes, receiver })
     }
-    fn map_write_event(&mut self, path: PathBuf) -> Result<FsEvent, Error> {
+    fn map_write_event(&mut self, path: PathBuf) -> Result<FilesystemEvent, Error> {
         let mut old_size = self.sizes.get(&path).cloned().unwrap_or(0);
         let meta = path.metadata()?;
         if meta.len() < old_size {
@@ -71,20 +71,20 @@ impl FsLogSource {
             *size = old_size + new_content_size as u64;
         }
 
-        Ok(FsEvent::Writed { path, new_content })
+        Ok(FilesystemEvent::Writed { path, new_content })
     }
-    fn map_event(&mut self, event: DebouncedEvent) -> Result<Option<FsEvent>, Error> {
+    fn map_event(&mut self, event: DebouncedEvent) -> Result<Option<FilesystemEvent>, Error> {
         let event = match event {
-            DebouncedEvent::Create(path) => Some(FsEvent::Created { path }),
+            DebouncedEvent::Create(path) => Some(FilesystemEvent::Created { path }),
             DebouncedEvent::Write(path) => Some(self.map_write_event(path)?),
-            DebouncedEvent::Remove(path) => Some(FsEvent::Removed { path }),
-            DebouncedEvent::Rename(from, to) => Some(FsEvent::Renamed { from, to }),
+            DebouncedEvent::Remove(path) => Some(FilesystemEvent::Removed { path }),
+            DebouncedEvent::Rename(from, to) => Some(FilesystemEvent::Renamed { from, to }),
             _ => None,
         };
 
         Ok(event)
     }
-    fn next_event(&mut self) -> Result<FsEvent, Error> {
+    fn next_event(&mut self) -> Result<FilesystemEvent, Error> {
         let event = self.receiver.recv()?;
         if let DebouncedEvent::Error(error, _) = event {
             return Err(Error::from(error));
@@ -98,12 +98,12 @@ impl FsLogSource {
     }
 }
 
-impl LogSource for FsLogSource {
+impl LogSource for FilesystemLogSource {
     fn into_stream(mut self: Box<Self>) -> Box<LogSourceStream> {
         let (tx, rx) = result_channel();
 
         thread::spawn(move || loop {
-            let result = self.next_event().map(FsEvent::into_record);
+            let result = self.next_event().map(FilesystemEvent::into_record);
             tx.unbounded_send(result).unwrap();
         });
 
@@ -121,7 +121,7 @@ mod tests {
 
     use crate::source::{LogRecord, LogSource};
 
-    use super::{Config, FsLogSource};
+    use super::{Config, FilesystemLogSource};
 
     fn record(title: &str, body: &str) -> LogRecord {
         LogRecord {
@@ -143,7 +143,7 @@ mod tests {
             entries: vec![base_path_string],
         };
 
-        let source = Box::new(FsLogSource::new(config).unwrap());
+        let source = Box::new(FilesystemLogSource::new(config).unwrap());
         let mut stream = source.into_stream().wait();
 
         let file_path = base_path.join("file");
