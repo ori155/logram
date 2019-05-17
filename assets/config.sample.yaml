@@ -12,3 +12,6 @@ sources:
     units: # names of systemd units for watching
       - docker.service
       - nginx.service
+
+  docker:
+    enabled: false
