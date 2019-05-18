@@ -4,7 +4,7 @@ telegram:
 
 sources:
   filesystem:
-    enabled: false # each log source has this setting, false by default
+    enabled: true # each log source has this setting, true by default
     entries: # paths to watching files or dirs
       - /tmp/log_file
       

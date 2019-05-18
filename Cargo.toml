@@ -44,5 +44,5 @@ log = { version = "0.4", features = ["std"] }
 regex = "1.1"
 lazy_static = "1.2"
 tgbot = "0.3"
-shiplift = { git = "https://github.com/Ralvke/shiplift.git", branch = "log-options-since" }
+shiplift = { git = "https://github.com/softprops/shiplift.git" }
 chrono = "0.4"

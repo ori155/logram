@@ -8,16 +8,15 @@ use super::{
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct LogSourceConfig<T> {
-    pub enabled: bool,
-
     #[serde(flatten)]
     pub inner: T,
+    pub enabled: bool,
 }
 impl<T: Default> Default for LogSourceConfig<T> {
     fn default() -> Self {
         LogSourceConfig {
-            enabled: false,
             inner: T::default(),
+            enabled: true,
         }
     }
 }
