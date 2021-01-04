@@ -1,15 +1,15 @@
 use failure::Error;
-use futures::sync::mpsc as futures_mpsc;
 use std::thread;
 use systemd::journal::{Journal, JournalFiles, JournalSeek};
 
 use crate::{
     config::JournaldLogSourceConfig,
-    source::{LogSource, LogSourceEvent, LogSourceStream},
+    source::{LogSource, LogSourceStream},
+    utils::result_channel,
 };
 
-mod event;
-use self::event::JournaldEvent;
+mod record;
+use self::record::map_record;
 
 pub struct JournaldLogSource {
     journal: Journal,
@@ -34,24 +34,75 @@ unsafe impl Send for JournaldLogSource {}
 
 impl LogSource for JournaldLogSource {
     fn into_stream(mut self) -> Box<LogSourceStream> {
-        let (tx, rx) = futures_mpsc::unbounded();
+        let (tx, rx) = result_channel();
         let tx_clone = tx.clone();
 
-        let on_event = move |event| {
-            let event = JournaldEvent::from(event);
-            let event = LogSourceEvent::Record(event.into());
-            tx.unbounded_send(event).unwrap();
+        let on_record = move |record| {
+            if let Some(record) = map_record(record) {
+                tx.unbounded_send(Ok(record)).unwrap();
+            }
 
             Ok(())
         };
 
-        thread::spawn(move || {
-            if let Err(error) = self.journal.watch_all_elements(on_event) {
-                let error = LogSourceEvent::Error(Error::from(error));
-                tx_clone.unbounded_send(error).unwrap();
+        let thread_task = move || {
+            if let Err(error) = self.journal.watch_all_elements(on_record) {
+                let error = Error::from(error);
+                tx_clone.unbounded_send(Err(error)).unwrap();
             }
-        });
+        };
+
+        thread::spawn(thread_task);
 
         Box::new(rx)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use futures::Stream;
+    use systemd::journal;
+
+    use crate::{
+        config::JournaldLogSourceConfig,
+        source::{LogRecord, LogSource},
+    };
+
+    use super::JournaldLogSource;
+
+    fn send_log_record(keys: Vec<(&str, &str)>) {
+        let keys: Vec<String> = keys
+            .iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect();
+
+        let keys = keys.iter().map(AsRef::as_ref).collect::<Vec<_>>();
+
+        journal::send(&keys);
+    }
+
+    fn record(title: &str, body: &str) -> LogRecord {
+        LogRecord {
+            title: String::from(title),
+            body: String::from(body),
+        }
+    }
+
+    #[test]
+    fn main() {
+        let config = JournaldLogSourceConfig {
+            units: vec![String::from("user@1000.service")],
+        };
+
+        let source = JournaldLogSource::new(config).unwrap();
+        let mut stream = source.into_stream().wait();
+        let mut stream_next = || stream.next().unwrap().unwrap();
+
+        send_log_record(vec![("MESSAGE", "logram test")]);
+        assert_eq!(stream_next(), record("user@1000.service", "logram test"));
+
+        send_log_record(vec![("MESSAGE", "logram test 2")]);
+        assert_eq!(stream_next(), record("user@1000.service", "logram test 2"));
+    }
+
 }
